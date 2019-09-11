@@ -6,16 +6,16 @@ set -e
 
 
 CORPUS=/home/luca/Desktop/inforet_proj/analyzer/data/stringed_corpus.txt
-VOCAB_FILE=vocab.txt
-COOCCURRENCE_FILE=cooccurrence.bin
-COOCCURRENCE_SHUF_FILE=cooccurrence.shuf.bin
-BUILDDIR=build
-SAVE_FILE=vectors
+VOCAB_FILE=/home/luca/Desktop/inforet_proj/analyzer/embeddings/vocab.txt
+COOCCURRENCE_FILE=/home/luca/Desktop/inforet_proj/analyzer/embeddings/cooccurrence.bin
+COOCCURRENCE_SHUF_FILE=/home/luca/Desktop/inforet_proj/analyzer/embeddings/cooccurrence.shuf.bin
+BUILDDIR=utils/glove/build
+SAVE_FILE=/home/luca/Desktop/inforet_proj/analyzer/embeddings/vectors
 VERBOSE=2
 MEMORY=4.0
 VOCAB_MIN_COUNT=1
-VECTOR_SIZE=2
-MAX_ITER=5
+VECTOR_SIZE=31
+MAX_ITER=20
 WINDOW_SIZE=5
 BINARY=2
 NUM_THREADS=8

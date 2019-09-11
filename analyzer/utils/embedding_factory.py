@@ -109,6 +109,7 @@ class LsaEmbedding(EmbeddingFactory):
         #normalization of embeddings to have faster cosine distance measure
         norms = np.linalg.norm(unnormalized_embeddings, axis=1)
         self.embeddings = unnormalized_embeddings / norms[:,None]
+        self.save_file = 'results/lsa_'+str(self.dimensionality)+'_'+str(self.window)+'.pkl'
 
     def create_vocabulary(self):
         #Different from the previous one.
@@ -180,6 +181,7 @@ class HpcaEmbedding(EmbeddingFactory):
         #normalization of embeddings to have faster cosine distance measure
         norms = np.linalg.norm(unnormalized_embeddings, axis=1)
         self.embeddings = unnormalized_embeddings / norms[:,None]
+        self.save_file = 'results/hpca_'+str(self.dimensionality)+'_'+str(self.window)+'.pkl'
 
     def create_vocabulary(self):
         #Different from the previous one.
@@ -260,3 +262,51 @@ class GloveEmbedding(EmbeddingFactory):
                     f.writelines('WINDOW_SIZE={}\n'.format(self.window))
                 else:
                     f.writelines(line)
+        self.rename_vectors = 'embeddings/glove_'+str(self.dimensionality)+'_'+str(self.window)+'_'+str(self.iter)+'.txt'
+        self.rename_vocab = 'embeddings/glove_vocab_'+str(self.dimensionality)+'_'+str(self.window)+'_'+str(self.iter)+'.txt'
+
+    def create_embeddings(self):
+
+        if not os.path.isfile('embeddings/glove_'+str(self.dimensionality)+'_'+str(self.window)+'_'+str(self.iter)+'.txt'):
+            os.system('utils/glove/demo.sh')
+            os.rename('embeddings/vectors.txt',self.rename_vectors)
+            os.rename('embeddings/vocab.txt',self.rename_vocab)
+            os.remove('embeddings/cooccurrence.bin')
+            os.remove('embeddings/cooccurrence.shuf.bin')
+        self.create_vocabulary()
+        #here I create the embedding mapping between word and vectors as a Dictionary
+        with open(self.rename_vectors,'r') as f:
+            vectors = f.readlines()
+        #forse un po' troppo convluta ma mi sta molto simpatica questa dict comprehension
+        self.embeddings = {x.split()[0]:[float(x.split()[j]) for j in range(1,len(x.split()))] for x in vectors}
+        print(type(self.embeddings))
+        #embeddings normalization for fast cosine similarity
+        for word,vector in self.embeddings.items():
+            np_vector = np.array(vector)
+            norm = np.linalg.norm(np_vector)
+            self.embeddings[word] = np_vector/norm
+
+        self.save_file = 'results/glove_'+str(self.dimensionality)+'_'+str(self.window)+'_'+str(self.iter)+'.pkl'
+
+
+    def create_vocabulary(self):
+        with open(self.rename_vocab,'r') as f:
+            vocab = f.readlines()
+        self.vocab = {x.split()[0] for x in vocab}
+
+    def get_most_similar(self, word, k=2):
+        #to be implemented
+        score_list = []
+        word_vector = self.embeddings[word]
+        for word_, vector in self.embeddings.items():
+            if word_ == word:
+                continue
+            score = np.dot(word_vector,vector)
+            score_list.append((word_,score))
+        sorted_words = sorted(score_list,key=lambda x:x[1],reverse=True)[:k]
+        return [most_relevant[0] for most_relevant in sorted_words]
+
+    def start(self):
+        self.get_params()
+        self.create_embeddings()
+        self.create_vocabulary()

@@ -24,7 +24,23 @@ def test_glove():
         data = pickle.load(f)
     g = GloveEmbedding(data)
     g.get_params()
-        
+    g.create_embeddings()
+    return g
+
+def test_one():
+    i = InvertedIndex()
+    i.build_inverted_index()
+    i.build_vsm()
+
+    d = DataPolisher()
+    cleaned_corpus = d.clean_text(algorithm='w2v')
+
+    w = GloveEmbedding(cleaned_corpus)
+    w.start()
+    q = QueryBuilder()
+    res = q.evaluate_word_embedding_scores(inv_index=i, embeddings=w)
+    return res
+
 
 if __name__ == '__main__':
 
@@ -43,7 +59,7 @@ if __name__ == '__main__':
     d = DataPolisher()
     cleaned_corpus = d.clean_text(algorithm='w2v')
 
-    w = W2vEmbedding(cleaned_corpus)
+    w = GloveEmbedding(cleaned_corpus)
     w.start()
     q = QueryBuilder()
     res = q.evaluate_word_embedding_scores(inv_index=i, embeddings=w)

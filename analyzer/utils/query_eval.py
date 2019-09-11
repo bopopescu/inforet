@@ -108,7 +108,7 @@ class QueryBuilder:
         results = pickle.load(open('results/baseline_results.pkl','rb'))
         return results
 
-    def evaluate_word_embedding_scores(self,  embeddings,inv_index, k=[5,10,15,20,25,30,35,40,45,50], exp_number=3):
+    def evaluate_word_embedding_scores(self,  embeddings,inv_index, k=[5,10,15,20,25,30,35,40,45,50], exp_number=2):
         #METTERE A POSTO STA COSA DEL K IN MANIERA TALE DA NON FARE TUTTO IL LAVORO AD OGNI ITERAZIONE
         #Evaluate precision, recall, F1 measure, ROC curve and confusion matrix
         #with k setted as wanted by the user
@@ -163,21 +163,49 @@ class QueryBuilder:
             f.close()
         results = pickle.load(open(save_file,'rb'))
         return results
-
-    def get_relevant_indexes(self, query, inv_index, embeddings, ex_number, top_number):
+    #TODO:check if the word is included
+    def get_relevant_indexes(self, query, inv_index, embeddings, exp_number, top_number, low_idf=7):
         #just to debug later on
         #RICORDATI DI STEMMARE QUI ALTRIMENTI È TUTTO UN CASINO
         #print(query)
+        idf_dict = inv_index.idf_dict
+
         s = PorterStemmer()
         #NON È DETTO CHE LE PAROLE CHE CI SONO NEL CORPUS CI SIANO ANCHE NELLE QUERY
         #expanded_list = [embeddings.get_most_similar(word, ex_number) for word in query]
+        #questo è da cambiare: prendo gli n con la più bassa idf (cioè i termini meno informativi)
+        #e faccio un'espansione solo di quelli, altrimenti il costo temporale è tremendo
+
         expanded_list = []
-        for word in query:
-            if word in embeddings.vocab:
-                ms = embeddings.get_most_similar(word, ex_number)
-                expanded_list.append(ms)
-            else:
-                expanded_list.append([word])
+        if len(query) <= low_idf:
+            for word in query:
+                if word in embeddings.vocab:
+                    ms = embeddings.get_most_similar(word, exp_number)
+                    ms.append(word)
+                    expanded_list.append(ms)
+                else:
+                    expanded_list.append([word])
+        else:
+            #Con la comprehension qui sotto porei cadere in key errors
+            listed_word = []
+            low_idf_int = low_idf
+            for word in query:
+                stemmed = s.stem(word)
+                if stemmed in idf_dict:
+                    listed_word.append((word,idf_dict[stemmed]))
+            #listed = [(word,idf_dict[s.stem(word)]) for word in query]
+            lowest_idf = sorted(listed_word,key=lambda x:x[1])[:low_idf_int]
+            lowest_idf_words = {x[0] for x in lowest_idf}
+
+            for word in query:
+                if word in lowest_idf_words and word in embeddings.vocab:
+                    ms = embeddings.get_most_similar(word, exp_number)
+                    ms.append(word)
+                    expanded_list.append(ms)
+                else:
+                    expanded_list.append([word])
+
+
         stemmed_list = [[s.stem(x) for x in y] for y in expanded_list]
         combined_list = list(product(*stemmed_list))
         combined_list = [list(x) for x in combined_list]
